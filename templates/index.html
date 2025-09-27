@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Crypto Data Downloader</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Bootstrap Datepicker CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/css/bootstrap-datepicker.min.css" rel="stylesheet" />
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-graph-up-arrow"></i>
+                Crypto Data Downloader
+            </a>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Left Panel - Download Form -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-gear"></i>
+                            Settings
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="download-form">
+                            <!-- Trading Pair Selection -->
+                            <div class="mb-3">
+                                <label for="symbol-search" class="form-label">Trading Pair</label>
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="symbol-search" 
+                                           placeholder="Search pairs (e.g., BTC, ETH)..."
+                                           autocomplete="off">
+                                    <button class="btn btn-outline-secondary" type="button" id="search-btn">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                                <div id="symbol-results" class="mt-2"></div>
+                                <input type="hidden" id="selected-symbol" name="symbol">
+                                <div class="form-text">
+                                    Popular: BTC/USDT, ETH/USDT, ADA/USDT
+                                </div>
+                            </div>
+
+                            <!-- Resolution Selection -->
+                            <div class="mb-3">
+                                <label for="resolution" class="form-label">Candle Resolution</label>
+                                <select class="form-select" id="resolution" name="period_id" required>
+                                    <option value="">Select resolution...</option>
+                                </select>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="mb-3">
+                                        <label for="start-date" class="form-label">Start Date</label>
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            id="start-date"
+                                            name="start_date"
+                                            placeholder="YYYY-MM-DD"
+                                            autocomplete="off"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="mb-3">
+                                        <label for="end-date" class="form-label">End Date</label>
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            id="end-date"
+                                            name="end_date"
+                                            placeholder="YYYY-MM-DD"
+                                            autocomplete="off"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="btn btn-primary w-100" id="download-btn">
+                                <i class="bi bi-download"></i>
+                                Start Download
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel - Jobs List -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-task"></i>
+                            Download Jobs
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" id="refresh-jobs">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="jobs-container">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                <p class="mt-2">No download jobs yet</p>
+                                <small>Start a download to see jobs here</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Template (Hidden) -->
+    <div id="job-template" style="display: none;">
+        <div class="card mb-3 job-item" data-job-id="">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h6 class="mb-1 job-symbol"></h6>
+                        <small class="text-muted job-resolution"></small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="job-status-badge"></div>
+                        <small class="text-muted job-message"></small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="progress job-progress-container" style="height: 8px;">
+                            <div class="progress-bar job-progress" 
+                                 role="progressbar" 
+                                 style="width: 0%" 
+                                 aria-valuenow="0" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted job-created-at"></small>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <div class="btn-group job-actions">
+                            <button class="btn btn-sm btn-success job-download-btn" style="display: none;">
+                                <i class="bi bi-download"></i>
+                                Download
+                            </button>
+                            <button class="btn btn-sm btn-info job-view-btn" style="display: none;">
+                                <i class="bi bi-eye"></i>
+                                View
+                            </button>
+                            <button class="btn btn-sm btn-danger job-delete-btn">
+                                <i class="bi bi-trash"></i>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteModalLabel"><i class="bi bi-trash"></i> Delete Download Job</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p id="delete-modal-message">Are you sure you want to delete this download job?</p>
+            <div class="alert alert-warning d-none" id="delete-modal-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              The associated data file could not be found. The job entry will be removed from the run log.
+            </div>
+            <p class="mb-0">This action is irreversible.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirm-delete-btn">
+              <i class="bi bi-trash"></i> Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plot View Modal -->
+    <div class="modal fade" id="plotModal" tabindex="-1" aria-labelledby="plotModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="plotModalLabel">
+                        <i class="bi bi-graph-up"></i>
+                        Cryptocurrency Chart
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="plot-container" style="width: 100%; height: 700px;">
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading chart...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="plot-info" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery (required for Bootstrap Datepicker) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap Datepicker JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/js/bootstrap-datepicker.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
