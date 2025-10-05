@@ -5,6 +5,7 @@ Downloader factory for creating appropriate downloader instances
 from typing import Optional
 from .base_downloader import BaseDownloader
 from .coinapi_downloader import CoinAPIDownloader
+from .coinanalyzer_downloader import CoinAnalyzerDownloader
 
 
 class DownloaderFactory:
@@ -15,6 +16,7 @@ class DownloaderFactory:
         # Future downloaders will be added here
         # 'binance': BinanceDownloader,
         # 'kraken': KrakenDownloader,
+        'coinanalyzer': CoinAnalyzerDownloader
     }
     
     @classmethod

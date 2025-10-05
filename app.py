@@ -26,7 +26,7 @@ STORAGE_FOLDER = Path(os.getenv("STORAGE_FOLDER", "local_storage"))
 RUN_LOG_FILE = STORAGE_FOLDER / "run_log.json"
 DOWNLOADER_PLATFORM = os.getenv("DOWNLOADER_PLATFORM", "coinapi").lower()
 API_KEY = os.getenv("COINAPI_KEY")
-BASE_URL = os.getenv("COINAPI_BASE_URL", "https://rest.coinapi.io/v1")
+BASE_URL = os.getenv("COINAPI_BASE_URL")
 PORT = int(os.getenv("PORT", 3010))
 
 DATA_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -40,6 +40,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev_secret_key_change_in_pro
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 downloader = DownloaderFactory.create_downloader(DOWNLOADER_PLATFORM, API_KEY, BASE_URL)
+print(BASE_URL, API_KEY)
 
 jobs_service = JobService(str(RUN_LOG_FILE))
 jobs_service.load_jobs()
